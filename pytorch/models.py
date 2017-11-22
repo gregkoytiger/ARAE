@@ -146,6 +146,9 @@ class Seq2Seq(nn.Module):
         else:
             self.embedding.weight.data.copy_(torch.from_numpy(pretrained_embedding))
             self.embedding_decoder.weight.data.copy_(torch.from_numpy(pretrained_embedding))
+	    self.embedding.weight.requires_grad = False
+	    self.embedding_decoder.weight.requires_grad = False
+
         # Initialize Encoder and Decoder Weights
         for p in self.encoder.parameters():
             p.data.uniform_(-initrange, initrange)

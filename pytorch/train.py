@@ -163,6 +163,7 @@ with open("./output/{}/logs.txt".format(args.outf), 'w') as f:
 # Load pretrained embeddings
 if args.pretrained_embedding != 'none':
     h5f = h5py.File(args.pretrained_embedding, 'r')
+    found_keys = corpus.dictionary.word2idx.keys()
     #Instantiates using default ARAE approach
     pretrained_embedding = np.random.uniform(-0.1,0.1, size=(ntokens,args.emsize))
     index = 0
@@ -170,7 +171,8 @@ if args.pretrained_embedding != 'none':
     	if word in found_keys:
     		pretrained_embedding[corpus.dictionary.word2idx[word],:] = h5f['embedding'][index,:]
         index += 1
-
+else:
+    pretrained_embedding = 'none'
 eval_batch_size = 10
 test_data = batchify(corpus.test, eval_batch_size, shuffle=False)
 train_data = batchify(corpus.train, args.batch_size, shuffle=True)
