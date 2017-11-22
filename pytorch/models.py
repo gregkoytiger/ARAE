@@ -120,17 +120,17 @@ class Seq2Seq(nn.Module):
 
         # RNN Encoder and Decoder
         self.encoder = nn.LSTM(input_size=emsize,
-                               hidden_size=nhidden,
-                               num_layers=nlayers,
-                               dropout=dropout,
-                               batch_first=True)
+                              hidden_size=nhidden,
+                              num_layers=nlayers,
+                              dropout=dropout,
+                              batch_first=True)
 
         decoder_input_size = emsize+nhidden
         self.decoder = nn.LSTM(input_size=decoder_input_size,
-                               hidden_size=nhidden,
-                               num_layers=1,
-                               dropout=dropout,
-                               batch_first=True)
+                              hidden_size=nhidden,
+                              num_layers=nlayers,
+                              dropout=dropout,
+                              batch_first=True)
 
         # Initialize Linear Transformation
         self.linear = nn.Linear(nhidden, ntokens)
@@ -201,9 +201,9 @@ class Seq2Seq(nn.Module):
         norms = torch.norm(hidden, 2, 1)
         
         # For older versions of PyTorch use:
-        hidden = torch.div(hidden, norms.expand_as(hidden))
+        # hidden = torch.div(hidden, norms.expand_as(hidden))
         # For newest version of PyTorch (as of 8/25) use this:
-        # hidden = torch.div(hidden, norms.unsqueeze(1).expand_as(hidden))
+        hidden = torch.div(hidden, norms.unsqueeze(1).expand_as(hidden))
 
         if noise and self.noise_radius > 0:
             gauss_noise = torch.normal(means=torch.zeros(hidden.size()),
@@ -238,45 +238,44 @@ class Seq2Seq(nn.Module):
         return decoded
 
     def generate(self, hidden, maxlen, sample=True, temp=1.0):
-        """Generate through decoder; no backprop"""
+            """Generate through decoder; no backprop"""
 
-        batch_size = hidden.size(0)
+            batch_size = hidden.size(0)
 
-        if self.hidden_init:
-            # initialize decoder hidden state to encoder output
-            state = (hidden.unsqueeze(0), self.init_state(batch_size))
-        else:
-            state = self.init_hidden(batch_size)
+            if self.hidden_init:
+                    # initialize decoder hidden state to encoder output
+                    state = (hidden.unsqueeze(0), self.init_state(batch_size))
+            else:
+                    state = self.init_hidden(batch_size)
 
-        # <sos>
-        self.start_symbols.data.resize_(batch_size, 1)
-        self.start_symbols.data.fill_(1)
+            # <sos>
+            self.start_symbols.data.resize_(batch_size)
+            self.start_symbols.data.fill_(1)
 
-        embedding = self.embedding_decoder(self.start_symbols)
-        inputs = torch.cat([embedding, hidden.unsqueeze(1)], 2)
+            embedding = self.embedding_decoder(self.start_symbols)
+            inputs = torch.cat([embedding, hidden], 1).unsqueeze(1)
 
-        # unroll
-        all_indices = []
-        for i in range(maxlen):
-            output, state = self.decoder(inputs, state)
-            overvocab = self.linear(output.squeeze(1))
+            # unroll
+            all_indices = []
+            for i in range(maxlen):
+                    output, state = self.decoder(inputs, state)
+                    overvocab = self.linear(output.squeeze(1))
 
             if not sample:
-                vals, indices = torch.max(overvocab, 1)
+                    vals, indices = torch.max(overvocab, 1)
             else:
-                # sampling
-                probs = F.softmax(overvocab/temp)
-                indices = torch.multinomial(probs, 1)
+                    # sampling
+                    probs = F.softmax(overvocab/temp)
+                    indices = torch.multinomial(probs, 1).squeeze(1)
 
-            all_indices.append(indices)
+            all_indices.append(indices.unsqueeze(1))
 
             embedding = self.embedding_decoder(indices)
-            inputs = torch.cat([embedding, hidden.unsqueeze(1)], 2)
+            inputs = torch.cat([embedding, hidden], 1).unsqueeze(1)
 
-        max_indices = torch.cat(all_indices, 1)
+            max_indices = torch.cat(all_indices, 1)
 
-        return max_indices
-
+            return max_indices
 
 def load_models(load_path):
     model_args = json.load(open("{}/args.json".format(load_path), "r"))
