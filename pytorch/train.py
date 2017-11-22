@@ -164,7 +164,7 @@ with open("./output/{}/logs.txt".format(args.outf), 'w') as f:
 if args.pretrained_embedding != 'none':
     h5f = h5py.File(args.pretrained_embedding, 'r')
     #Instantiates using default ARAE approach
-    pretrained_embedding = np.random.uniform(-0.1,0.1, size=(ntokens,emsize))
+    pretrained_embedding = np.random.uniform(-0.1,0.1, size=(ntokens,args.emsize))
     index = 0
     for word in h5f['index2word']:
     	if word in found_keys:
