@@ -103,11 +103,12 @@ class Corpus(object):
                     words = line[:-1].lower().strip().split(" ")
                 else:
                     words = line[:-1].strip().split(" ")
-                if len(words) > self.maxlen:
-                    dropped += 1
-                    continue
                 words = ['<sos>'] + words
                 words += ['<eos>']
+		if len(words) > self.maxlen:
+                   words = words[:self.maxlen] 
+		   #dropped += 1
+                   #continue
                 # vectorize
                 vocab = self.dictionary.word2idx
                 unk_idx = vocab['<oov>']
