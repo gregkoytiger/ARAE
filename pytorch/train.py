@@ -6,6 +6,7 @@ import numpy as np
 import random
 import sys
 import json
+import h5py
 
 import torch
 import torch.nn as nn
