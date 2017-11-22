@@ -18,12 +18,16 @@ from models import Seq2Seq, MLP_D, MLP_G
 
 parser = argparse.ArgumentParser(description='PyTorch ARAE for Text')
 # Path Arguments
-parser.add_argument('--data_path', type=str, required=True,
+parser.add_argument('--data_path', type=str,
                     help='location of the data corpus')
 parser.add_argument('--kenlm_path', type=str, default='../Data/kenlm',
                     help='path to kenlm directory')
 parser.add_argument('--outf', type=str, default='example',
                     help='output directory name')
+
+# Pretrained arguments
+parser.add_argument('--pretrained_embedding', type=str, default='none',
+                    help='load pretrained embedding')
 
 # Data Processing Arguments
 parser.add_argument('--vocab_size', type=int, default=11000,
@@ -140,6 +144,7 @@ corpus = Corpus(args.data_path,
                 maxlen=args.maxlen,
                 vocab_size=args.vocab_size,
                 lowercase=args.lowercase)
+
 # dumping vocabulary
 with open('./output/{}/vocab.json'.format(args.outf), 'w') as f:
     json.dump(corpus.dictionary.word2idx, f)
@@ -153,6 +158,17 @@ with open('./output/{}/args.json'.format(args.outf), 'w') as f:
 with open("./output/{}/logs.txt".format(args.outf), 'w') as f:
     f.write(str(vars(args)))
     f.write("\n\n")
+
+# Load pretrained embeddings
+if args.pretrained_embedding != 'none':
+    h5f = h5py.File(args.pretrained_embedding, 'r')
+    #Instantiates using default ARAE approach
+    pretrained_embedding = np.random.uniform(-0.1,0.1, size=(ntokens,emsize))
+    index = 0
+    for word in h5f['index2word']:
+    	if word in found_keys:
+    		pretrained_embedding[corpus.dictionary.word2idx[word],:] = h5f['embedding'][index,:]
+        index += 1
 
 eval_batch_size = 10
 test_data = batchify(corpus.test, eval_batch_size, shuffle=False)
@@ -171,6 +187,7 @@ autoencoder = Seq2Seq(emsize=args.emsize,
                       nlayers=args.nlayers,
                       noise_radius=args.noise_radius,
                       hidden_init=args.hidden_init,
+                      pretrained_embedding=pretrained_embedding,
                       dropout=args.dropout,
                       gpu=args.cuda)
 
